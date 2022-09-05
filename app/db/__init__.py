@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
+from flask import g 
 
 load_dotenv()
 
@@ -12,10 +13,23 @@ Session = sessionmaker(bind=engine)
 Base = declarative_base()
 
 # start db connection
-def init_db():
+def init_db(app):
     Base.metadata.create_all(engine)
 
-# send get session object for use with routes
+    app.teardown_appcontext(close_db)
+
+# send session object for use with routes
 def get_db():
-    return Session()
+    if 'db' not in g:
+        # store db connectin in app context
+        g.db = Session()
+
+    return g.db
+
+# close db connection
+def close_db(e=None):
+    db = g.pop('db', None)
+
+    if db is not None:
+        db.close()
     
